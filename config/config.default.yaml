@@ -1,0 +1,10 @@
+mailgun:
+  domain: your-domain 
+  key: your-api-key
+  from: your-sender 
+  to: your-recipient
+  subject: your-subject
+
+browser:
+  timeout: 30 # s
+  page: your-page 
