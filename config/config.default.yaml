@@ -6,5 +6,6 @@ mailgun:
   subject: your-subject
 
 browser:
-  timeout: 30 # s
+  address: ws url
+  timeout: 10 # s
   page: your-page 

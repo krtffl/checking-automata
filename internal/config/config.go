@@ -17,16 +17,25 @@ type Config struct {
 
 // Mailgun holds the configuration for mailgun
 type Mailgun struct {
-	Domain  string `mapstructure:"domain"  yaml:"domain"`
-	Key     string `mapstructure:"key"     yaml:"key"`
+	// Domain from which mails will be sent
+	Domain string `mapstructure:"domain" yaml:"domain"`
+
+	// API key
+	Key string `mapstructure:"key" yaml:"key"`
+
 	From    string `mapstructure:"from"    yaml:"from"`
 	To      string `mapstructure:"to"      yaml:"to"`
 	Subject string `mapstructure:"subject" yaml:"subject"`
 }
 
 type Browser struct {
-	Timeout int    `mapstructure:"timeout" yaml:"timeout"`
-	Page    string `mapstructure:"page"    yaml:"page"`
+	// wsURL
+	Address string `mapstructure:"address" yaml:"address"`
+
+	Timeout int `mapstructure:"timeout" yaml:"timeout"`
+
+	// where to navigate
+	Page string `mapstructure:"page" yaml:"page"`
 }
 
 // Load loads custom config from specified file or creates a new default one.

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"time"
 
@@ -16,8 +17,8 @@ import (
 var configPath = flag.String("config", "config/config.yaml", "config file path")
 
 const (
-	CHECKING_BUTTON      = `//button[contains(., 'Entrar')]`
-	CHECKING_TYPE_BUTTON = `//button[contains(., 'Teletrabajo')]`
+	CHECKING_BUTTON = `//button[contains(., 'Entrar')]`
+	REMOTE_BUTTON   = `//button[contains(., 'Teletrabajo')]`
 )
 
 func main() {
@@ -26,8 +27,17 @@ func main() {
 	cfg := config.Load(viper.New(), *configPath)
 
 	// B R O W S E R    S E T  U P
-	ctx, cancel := chromedp.NewContext(
+	// it needs to attach to a currently running app
+	// otherwise two factor auth will be required to login
+	allowCtx, cancel := chromedp.NewRemoteAllocator(
 		context.Background(),
+		cfg.Browser.Address,
+	)
+	defer cancel()
+
+	ctx, cancel := chromedp.NewContext(
+		allowCtx,
+		chromedp.WithLogf(log.Printf),
 	)
 	defer cancel()
 
@@ -41,19 +51,43 @@ func main() {
 	mg := mailgun.NewMailgun(cfg.Mailgun.Domain, cfg.Mailgun.Key)
 
 	// When you have an EU-domain, you must specify the endpoint:
-	mg.SetAPIBase("https://api.eu.mailgun.net/v3")
+	// mg.SetAPIBase("https://api.eu.mailgun.net/v3")
 
 	var msgContent string
 	err := chromedp.Run(
 		ctx,
+
+		// navigating to checking page
 		chromedp.Navigate(cfg.Browser.Page),
+
+		// should already be logged in and with
+		// location permissions
 		chromedp.WaitVisible(CHECKING_BUTTON, chromedp.BySearch),
 		chromedp.Click(CHECKING_BUTTON, chromedp.BySearch),
-		chromedp.WaitVisible(CHECKING_TYPE_BUTTON, chromedp.BySearch),
-		chromedp.Click(CHECKING_TYPE_BUTTON, chromedp.BySearch),
+		chromedp.WaitVisible(REMOTE_BUTTON, chromedp.BySearch),
+		chromedp.Click(REMOTE_BUTTON, chromedp.BySearch),
 	)
 	if err != nil {
 		log.Printf("[CheckingAutomata] - Failed to check in. %v", err)
+		msgContent = fmt.Sprintf(
+			`good morning
+            there's been a problem checking in for today: %v.
+             
+            
+            please make sure you handle it yourself.
+
+            checkingautomata,`,
+			err,
+		)
+	} else {
+		msgContent = fmt.Sprintf(
+			`
+            good morning
+            everything is in order.
+
+
+            checkingautomata,`,
+		)
 	}
 
 	msg := mg.NewMessage(
@@ -63,8 +97,10 @@ func main() {
 		cfg.Mailgun.To,
 	)
 
-	_, _, err = mg.Send(ctx, msg)
+	m, id, err := mg.Send(ctx, msg)
 	if err != nil {
 		log.Printf("[CheckingAutomata] - Failed to send email. %v", err)
 	}
+
+	log.Printf("[CheckingAutomata] - Successfully checked in and notified. %s. %s", m, id)
 }
