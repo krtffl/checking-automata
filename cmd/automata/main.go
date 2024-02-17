@@ -47,14 +47,9 @@ func main() {
 	)
 	defer cancel()
 
-	// M A I L G U N    S E T  U P
-	mg := mailgun.NewMailgun(cfg.Mailgun.Domain, cfg.Mailgun.Key)
-
-	// When you have an EU-domain, you must specify the endpoint:
-	// mg.SetAPIBase("https://api.eu.mailgun.net/v3")
-
 	var msgContent string
-	err := chromedp.Run(
+
+	browserErr := chromedp.Run(
 		ctx,
 
 		// navigating to checking page
@@ -67,8 +62,8 @@ func main() {
 		chromedp.WaitVisible(REMOTE_BUTTON, chromedp.BySearch),
 		chromedp.Click(REMOTE_BUTTON, chromedp.BySearch),
 	)
-	if err != nil {
-		log.Printf("[CheckingAutomata] - Failed to check in. %v", err)
+	if browserErr != nil {
+		log.Printf("[CheckingAutomata] - Failed to check in. %v", browserErr)
 		msgContent = fmt.Sprintf(
 			`good morning
             there's been a problem checking in for today: %v.
@@ -77,9 +72,10 @@ func main() {
             please make sure you handle it yourself.
 
             checkingautomata,`,
-			err,
+			browserErr,
 		)
 	} else {
+		log.Printf("[CheckingAutomata] - Successfully checked in.")
 		msgContent = fmt.Sprintf(
 			`
             good morning
@@ -90,17 +86,25 @@ func main() {
 		)
 	}
 
-	msg := mg.NewMessage(
-		cfg.Mailgun.From,
-		cfg.Mailgun.Subject,
-		msgContent,
-		cfg.Mailgun.To,
-	)
+	// M A I L G U N    S E T  U P
+	if cfg.Mailgun.Enable {
+		mg := mailgun.NewMailgun(cfg.Mailgun.Domain, cfg.Mailgun.Key)
 
-	m, id, err := mg.Send(ctx, msg)
-	if err != nil {
-		log.Printf("[CheckingAutomata] - Failed to send email. %v", err)
+		// When you have an EU-domain, you must specify the endpoint:
+		// mg.SetAPIBase("https://api.eu.mailgun.net/v3")
+
+		msg := mg.NewMessage(
+			cfg.Mailgun.From,
+			cfg.Mailgun.Subject,
+			msgContent,
+			cfg.Mailgun.To,
+		)
+
+		m, id, err := mg.Send(ctx, msg)
+		if err != nil {
+			log.Printf("[CheckingAutomata] - Failed to send email. %v", err)
+		}
+
+		log.Printf("[CheckingAutomata] - Successfully notified. %s. %s", m, id)
 	}
-
-	log.Printf("[CheckingAutomata] - Successfully checked in and notified. %s. %s", m, id)
 }

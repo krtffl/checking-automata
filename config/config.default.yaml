@@ -1,4 +1,5 @@
 mailgun:
+  enable: true|false
   domain: your-domain 
   key: your-api-key
   from: your-sender 

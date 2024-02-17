@@ -17,6 +17,9 @@ type Config struct {
 
 // Mailgun holds the configuration for mailgun
 type Mailgun struct {
+	// Whether email service is enabled
+	Enable bool `mapstructure:"enable" yaml:"enable"`
+
 	// Domain from which mails will be sent
 	Domain string `mapstructure:"domain" yaml:"domain"`
 
@@ -29,7 +32,7 @@ type Mailgun struct {
 }
 
 type Browser struct {
-	// wsURL
+	// wsURL to attach to
 	Address string `mapstructure:"address" yaml:"address"`
 
 	Timeout int `mapstructure:"timeout" yaml:"timeout"`
